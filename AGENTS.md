@@ -44,6 +44,12 @@ The codebase has three layers. Respect their boundaries:
   test. Use Vitest. Core must have thorough tests. Renderer tests focus on
   dimension calculations.
 
+## Import Paths
+
+- Use **relative paths** for all imports (e.g., `./quantize.js`,
+  `../pbn-grid-core/index.js`).
+- No bare specifiers — there is no bundler in production.
+
 ## When Making Changes
 
 1. Read the relevant spec in `specs/` before starting work.

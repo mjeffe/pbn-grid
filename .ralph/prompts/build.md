@@ -10,6 +10,15 @@ Your task is to implement functionality per the specifications using parallel su
 - **Specs Index:** ${SPECS_DIR}/README.md
 - **Implementation Plan:** ${RALPH_HOME}/implementation_plan.md
 
+## Project Constraints
+
+- **No frameworks or runtime dependencies.** Plain HTML, CSS, and JavaScript only.
+- **No bare import specifiers.** Use relative paths only (e.g., `./quantize.js`,
+  `../pbn-grid-core/index.js`) — there is no bundler in production.
+- **No DOM or browser APIs in `src/pbn-grid-core/`.** Core is a pure
+  data-processing library that must work in Node.js and the browser.
+- **No build step.** The `src/` directory is deployed as-is to GitHub Pages.
+
 ## Your Responsibilities
 
 1. Study ${SPECS_DIR}/README.md for an overview of all specs

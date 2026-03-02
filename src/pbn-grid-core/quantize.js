@@ -114,7 +114,64 @@ function medianCut(buckets, targetCount) {
 }
 
 /**
- * Quantize image colors to `colorCount` colors using median-cut.
+ * Compute squared Euclidean distance between two RGB colors.
+ * @param {{ r: number, g: number, b: number }} a
+ * @param {{ r: number, g: number, b: number }} b
+ * @returns {number}
+ */
+function colorDistanceSq(a, b) {
+    const dr = a.r - b.r;
+    const dg = a.g - b.g;
+    const db = a.b - b.b;
+    return dr * dr + dg * dg + db * db;
+}
+
+/**
+ * Merge palette entries iteratively until `targetCount` remain.
+ * At each step, the two entries with the smallest Euclidean RGB distance
+ * are merged, with the resulting color weighted by pixel count.
+ *
+ * @param {{ r: number, g: number, b: number, count: number }[]} entries
+ * @param {number} targetCount
+ * @returns {{ r: number, g: number, b: number, count: number }[]}
+ */
+function mergePalette(entries, targetCount) {
+    while (entries.length > targetCount) {
+        let bestDist = Infinity;
+        let bestI = 0;
+        let bestJ = 1;
+
+        for (let i = 0; i < entries.length; i++) {
+            for (let j = i + 1; j < entries.length; j++) {
+                const dist = colorDistanceSq(entries[i], entries[j]);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestI = i;
+                    bestJ = j;
+                }
+            }
+        }
+
+        const a = entries[bestI];
+        const b = entries[bestJ];
+        const totalCount = a.count + b.count;
+        const merged = {
+            r: Math.round((a.r * a.count + b.r * b.count) / totalCount),
+            g: Math.round((a.g * a.count + b.g * b.count) / totalCount),
+            b: Math.round((a.b * a.count + b.b * b.count) / totalCount),
+            count: totalCount,
+        };
+
+        entries[bestI] = merged;
+        entries.splice(bestJ, 1);
+    }
+
+    return entries;
+}
+
+/**
+ * Quantize image colors to `colorCount` colors using median-cut with
+ * an over-quantize-then-merge strategy to preserve minority colors.
  *
  * @param {{ data: Uint8ClampedArray, width: number, height: number }} imageData
  * @param {number} colorCount
@@ -127,13 +184,26 @@ export function quantizeColors(imageData, colorCount) {
         return [{ index: 1, r: 0, g: 0, b: 0 }];
     }
 
-    let buckets = medianCut([pixels], colorCount);
+    // Over-quantize: target colorCount × 3, capped at pixel count
+    const overTarget = Math.min(colorCount * 3, pixels.length);
+    const buckets = medianCut([pixels], overTarget);
 
-    // Build palette from bucket averages
-    return buckets.map((bucket, i) => {
+    // Build intermediate palette with pixel counts
+    const entries = buckets.map((bucket) => {
         const avg = averageColor(bucket);
-        return { index: i + 1, r: avg.r, g: avg.g, b: avg.b };
+        return { r: avg.r, g: avg.g, b: avg.b, count: bucket.length };
     });
+
+    // Merge down to target colorCount
+    const merged = mergePalette(entries, colorCount);
+
+    // Re-index with 1-based indices
+    return merged.map((entry, i) => ({
+        index: i + 1,
+        r: entry.r,
+        g: entry.g,
+        b: entry.b,
+    }));
 }
 
 /**

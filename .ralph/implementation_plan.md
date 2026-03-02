@@ -11,7 +11,7 @@
 ## Task 7 — Core: Over-Quantize and Merge Strategy
 
 **Spec:** [pbn-grid-core.md](../specs/pbn-grid-core.md) — "Over-quantize and merge" section
-**Status:** `planned`
+**Status:** `complete`
 **Depends on:** None (modifies existing code)
 
 The current `quantizeColors()` runs plain median-cut directly to `colorCount`.

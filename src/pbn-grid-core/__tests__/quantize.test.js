@@ -114,6 +114,101 @@ describe('quantizeColors', () => {
     });
 });
 
+describe('quantizeColors — over-quantize and merge', () => {
+    it('preserves distinct minority colors', () => {
+        // 95% brown/tan pixels, 5% vivid blue
+        const pixels = [];
+        const brownCount = 190;
+        const blueCount = 10;
+        for (let i = 0; i < brownCount; i++) {
+            // Slight variation in browns
+            const shade = 100 + (i % 40);
+            pixels.push([shade, Math.round(shade * 0.7), Math.round(shade * 0.4), 255]);
+        }
+        for (let i = 0; i < blueCount; i++) {
+            pixels.push([20, 40, 220, 255]);
+        }
+        const imageData = makeImageData(pixels, 20, 10);
+        const palette = quantizeColors(imageData, 4);
+        expect(palette).toHaveLength(4);
+
+        // At least one palette entry should be blue-ish (b > r and b > g)
+        const hasBlue = palette.some(c => c.b > 150 && c.b > c.r && c.b > c.g);
+        expect(hasBlue).toBe(true);
+    });
+
+    it('merges similar colors together', () => {
+        // 3 near-identical grays + 3 distinct colors
+        const pixels = [];
+        // Gray cluster: 120,120,120 / 122,122,122 / 118,118,118
+        for (let i = 0; i < 30; i++) pixels.push([120, 120, 120, 255]);
+        for (let i = 0; i < 30; i++) pixels.push([122, 122, 122, 255]);
+        for (let i = 0; i < 30; i++) pixels.push([118, 118, 118, 255]);
+        // Distinct: red, green, blue
+        for (let i = 0; i < 30; i++) pixels.push([220, 30, 30, 255]);
+        for (let i = 0; i < 30; i++) pixels.push([30, 220, 30, 255]);
+        for (let i = 0; i < 30; i++) pixels.push([30, 30, 220, 255]);
+
+        const imageData = makeImageData(pixels, 18, 10);
+        const palette = quantizeColors(imageData, 4);
+        expect(palette).toHaveLength(4);
+
+        // Grays should collapse — at most 1-2 gray entries
+        const grays = palette.filter(c =>
+            Math.abs(c.r - c.g) < 30 && Math.abs(c.g - c.b) < 30 && c.r > 80 && c.r < 160
+        );
+        expect(grays.length).toBeLessThanOrEqual(2);
+    });
+
+    it('pixel-weighted merge produces result closer to dominant color', () => {
+        // Many pixels of color A, few of color B (close in RGB space)
+        const pixels = [];
+        for (let i = 0; i < 100; i++) pixels.push([200, 50, 50, 255]);   // dominant red
+        for (let i = 0; i < 10; i++) pixels.push([180, 60, 60, 255]);    // similar, minority
+        // Add a very different color so these two must merge
+        for (let i = 0; i < 50; i++) pixels.push([30, 30, 220, 255]);    // blue
+
+        const imageData = makeImageData(pixels, 16, 10);
+        const palette = quantizeColors(imageData, 2);
+        expect(palette).toHaveLength(2);
+
+        // The red-ish entry should be closer to [200,50,50] than [180,60,60]
+        const redEntry = palette.find(c => c.r > c.b);
+        expect(redEntry).toBeDefined();
+        expect(redEntry.r).toBeGreaterThan(190);
+    });
+
+    it('handles colorCount >= distinct colors without error', () => {
+        // Only 2 distinct colors, asking for 10
+        const pixels = [];
+        for (let i = 0; i < 8; i++) pixels.push([255, 0, 0, 255]);
+        for (let i = 0; i < 8; i++) pixels.push([0, 255, 0, 255]);
+        const imageData = makeImageData(pixels, 4, 4);
+        const palette = quantizeColors(imageData, 10);
+        // Should return what it can — no crash
+        expect(palette.length).toBeGreaterThanOrEqual(1);
+        expect(palette.length).toBeLessThanOrEqual(10);
+        palette.forEach((c, i) => {
+            expect(c.index).toBe(i + 1);
+        });
+    });
+
+    it('is deterministic — same input produces same output', () => {
+        const pixels = [];
+        for (let r = 0; r < 4; r++) {
+            for (let g = 0; g < 4; g++) {
+                for (let b = 0; b < 4; b++) {
+                    pixels.push([r * 85, g * 85, b * 85, 255]);
+                }
+            }
+        }
+        const imageData = makeImageData(pixels, 8, 8);
+        const result1 = quantizeColors(imageData, 6);
+        const result2 = quantizeColors(imageData, 6);
+        expect(result1).toEqual(result2);
+    });
+});
+
 describe('nearestColor', () => {
     const palette = [
         { index: 1, r: 255, g: 0, b: 0 },

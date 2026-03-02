@@ -15,7 +15,7 @@ renderer support for puzzle info, and the tabbed UI for browsing puzzles.
 ### 1. Renderer: Add `puzzleInfo` support
 
 - **Spec:** `specs/pbn-grid-renderer.md` (Render Options table, Puzzle Info Line section)
-- **Status:** `planned`
+- **Status:** `complete`
 - **Description:**
   - Add `puzzleInfo` to `DEFAULT_OPTIONS` (default: `null`).
   - In `renderPBNGrid`, when `puzzleInfo` is provided, render a text line below

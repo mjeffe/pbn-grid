@@ -63,6 +63,36 @@ describe('getCanvasDimensions', () => {
     });
 });
 
+describe('puzzleInfo dimensions', () => {
+    it('puzzleInfo adds height when provided', () => {
+        const result = makeGridResult(10, 10);
+        const without = getCanvasDimensions(result);
+        const withInfo = getCanvasDimensions(result, { puzzleInfo: { id: 1, title: 'Dog' } });
+        expect(withInfo.height).toBeGreaterThan(without.height);
+    });
+
+    it('puzzleInfo adds height even without legend', () => {
+        const result = makeGridResult(10, 10);
+        const without = getCanvasDimensions(result, { showLegend: false });
+        const withInfo = getCanvasDimensions(result, { showLegend: false, puzzleInfo: { id: 1 } });
+        expect(withInfo.height).toBe(without.height + 30);
+    });
+
+    it('puzzleInfo null does not add height', () => {
+        const result = makeGridResult(10, 10);
+        const withNull = getCanvasDimensions(result, { puzzleInfo: null });
+        const without = getCanvasDimensions(result);
+        expect(withNull.height).toBe(without.height);
+    });
+
+    it('width is unchanged by puzzleInfo', () => {
+        const result = makeGridResult(10, 10);
+        const without = getCanvasDimensions(result);
+        const withInfo = getCanvasDimensions(result, { puzzleInfo: { id: 5, title: 'Cat' } });
+        expect(withInfo.width).toBe(without.width);
+    });
+});
+
 describe('fontSize auto-scaling', () => {
     it('default fontSize is null (auto-scale)', () => {
         // getCanvasDimensions merges with defaults — fontSize doesn't affect

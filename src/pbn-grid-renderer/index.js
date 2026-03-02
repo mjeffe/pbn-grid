@@ -8,7 +8,12 @@ const DEFAULT_OPTIONS = {
     numberColor: '#999999',
     fontSize: null,
     showLegend: true,
+    puzzleInfo: null,
 };
+
+const PUZZLE_INFO_FONT = '14px sans-serif';
+const PUZZLE_INFO_COLOR = '#999999';
+const PUZZLE_INFO_HEIGHT = 30;
 
 /**
  * Auto-calculate font size from cell size.
@@ -37,6 +42,7 @@ function resolveFontSize(fontSize, cellSize) {
  * @property {string} [numberColor='#999999']
  * @property {number|null} [fontSize=null] - When null, auto-scales as Math.max(8, Math.floor(cellSize * 0.45))
  * @property {boolean} [showLegend=true]
+ * @property {{ id: number, title?: string }|null} [puzzleInfo=null]
  */
 
 /**
@@ -55,6 +61,9 @@ function getCanvasDimensions(gridResult, options) {
     if (opts.showLegend) {
         const legendDimensions = calculateLegendDimensions(gridResult.palette, gridPixelWidth);
         totalHeight += legendDimensions.height;
+    }
+    if (opts.puzzleInfo) {
+        totalHeight += PUZZLE_INFO_HEIGHT;
     }
 
     return { width: gridPixelWidth, height: totalHeight };
@@ -84,6 +93,17 @@ function renderPBNGrid(canvas, gridResult, options) {
 
     if (opts.showLegend) {
         renderLegend(ctx, gridResult.palette, 0, gridResult.gridHeight * opts.cellSize, canvas.width);
+    }
+
+    if (opts.puzzleInfo) {
+        const infoY = canvas.height - PUZZLE_INFO_HEIGHT;
+        const text = opts.puzzleInfo.title
+            ? `Puzzle #${opts.puzzleInfo.id} \u2014 ${opts.puzzleInfo.title}`
+            : `Puzzle #${opts.puzzleInfo.id}`;
+        ctx.font = PUZZLE_INFO_FONT;
+        ctx.fillStyle = PUZZLE_INFO_COLOR;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 10, infoY + PUZZLE_INFO_HEIGHT / 2);
     }
 }
 

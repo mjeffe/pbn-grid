@@ -4,34 +4,9 @@
 
 PBN-Grid is a client-side web app that converts images into grid-based,
 printable paint-by-number puzzles. Read the specs in `specs/` for full details.
-
-## Architecture
-
-The codebase has three layers. Respect their boundaries:
-
-1. **`src/pbn-grid-core/`** — Pure data-processing library. NO DOM or browser
-   APIs. Must work in Node.js and the browser. All color quantization and grid
-   generation logic lives here.
-
-2. **`src/pbn-grid-renderer/`** — Canvas rendering library. Takes the output of
-   core and renders to an `HTMLCanvasElement`. Depends on core's data types but
-   never calls core directly — it receives data, it doesn't fetch it.
-
-3. **`src/app.js`, `src/index.html`, `src/style.css`** — Web UI. Orchestrates
-   core and renderer. This is the only layer that should handle user
-   interaction, file uploads, and export (PNG download, print).
-
-## Key Rules
-
-- **No frameworks.** Plain HTML, CSS, and JavaScript only. No React, Vue,
-  Angular, jQuery, etc.
-- **No external runtime dependencies.** The app has zero production
-  dependencies. Everything is implemented from scratch or uses browser built-in
-  APIs.
-- **ES modules.** Use `import`/`export` syntax. No CommonJS (`require`).
-- **Dev dependencies are dev-only.** Vite and Vitest are for development. The
-  production app is plain static files served from `src/`.
-- **No build step for production.** The `src/` directory is deployed as-is.
+Architecture, constraints, and data types are defined there — do not duplicate
+them here. Pay special attention to the **Constraints** section in
+`specs/overview.md`.
 
 ## Conventions
 
@@ -43,12 +18,9 @@ The codebase has three layers. Respect their boundaries:
 - **Testing:** Tests live in `__tests__/` directories next to the code they
   test. Use Vitest. Core must have thorough tests. Renderer tests focus on
   dimension calculations.
-
-## Import Paths
-
-- Use **relative paths** for all imports (e.g., `./quantize.js`,
-  `../pbn-grid-core/index.js`).
-- No bare specifiers — there is no bundler in production.
+- **Formatting**: indent with 4 spaces, 120 max char line length
+- **Naming**: favor snake_case in shell and python, for javascript: use single quotes and semicolons
+- **Comments**: Only add comments when code is complex and requires context for future developers
 
 ## When Making Changes
 
@@ -69,3 +41,11 @@ docker compose exec app npm test
 # Or directly
 npm test
 ```
+
+## Commit Messages
+
+- NO agent attribution
+- NO "Generated with" footers
+- Use conventional commits (feat:, fix:, etc.)
+- First line under 72 characters followed by a blank line.
+

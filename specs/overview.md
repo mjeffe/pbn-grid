@@ -48,7 +48,15 @@ No Internet Explorer or legacy browser support. This may be revisited later.
 
 ## Constraints
 
-- No server-side processing.
-- No heavy frameworks (React, Vue, Angular, etc.).
-- Dev tooling (Vite, Vitest, Docker) is for development only — the production
-  app is plain static files servable by any web server, CDN, or file host.
+- **No server-side processing.**
+- **No frameworks or runtime dependencies.** Plain HTML, CSS, and JavaScript
+  only. No React, Vue, Angular, jQuery, etc. The app has zero production
+  dependencies.
+- **ES modules only.** Use `import`/`export` syntax. No CommonJS (`require`).
+- **Relative import paths only.** Use paths like `./quantize.js` or
+  `../pbn-grid-core/index.js`. No bare specifiers — there is no bundler in
+  production.
+- **No build step.** The `src/` directory is deployed as-is to GitHub Pages.
+- **Dev dependencies are dev-only.** Vite and Vitest are for development. The
+  production app is plain static files servable by any web server, CDN, or
+  file host.

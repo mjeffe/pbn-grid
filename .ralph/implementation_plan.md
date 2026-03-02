@@ -10,7 +10,7 @@
 ## Task 1 — Dev Environment Scaffold
 
 **Spec:** [dev-environment.md](../specs/dev-environment.md)
-**Status:** `planned`
+**Status:** `complete`
 
 Create the project infrastructure files needed before any application code:
 

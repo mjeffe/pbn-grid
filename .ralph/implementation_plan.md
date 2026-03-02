@@ -109,7 +109,7 @@ Implement grid generation and wire up the core public API:
 ## Task 4 — Renderer: Grid & Legend Rendering
 
 **Spec:** [pbn-grid-renderer.md](../specs/pbn-grid-renderer.md)
-**Status:** `planned`
+**Status:** `complete`
 **Depends on:** Task 3 (uses `PBNGridResult` / `PBNColor` data shapes)
 
 Implement the canvas renderer:

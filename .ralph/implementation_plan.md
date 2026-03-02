@@ -187,7 +187,7 @@ configure → generate → download/print works.
 ## Task 6 — CI/CD Pipeline
 
 **Spec:** [ci-cd.md](../specs/ci-cd.md)
-**Status:** `planned`
+**Status:** `complete`
 **Depends on:** Task 1
 
 Create the GitHub Actions workflow:

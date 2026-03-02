@@ -43,7 +43,7 @@ Create the project infrastructure files needed before any application code:
 ## Task 2 — Core Library: Color Quantization
 
 **Spec:** [pbn-grid-core.md](../specs/pbn-grid-core.md)
-**Status:** `planned`
+**Status:** `complete`
 **Depends on:** Task 1
 
 Implement the median-cut color quantization algorithm:

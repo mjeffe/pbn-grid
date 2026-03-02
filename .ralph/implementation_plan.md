@@ -72,7 +72,7 @@ Implement the median-cut color quantization algorithm:
 ## Task 3 — Core Library: Grid Generation & Public API
 
 **Spec:** [pbn-grid-core.md](../specs/pbn-grid-core.md)
-**Status:** `planned`
+**Status:** `complete`
 **Depends on:** Task 2
 
 Implement grid generation and wire up the core public API:

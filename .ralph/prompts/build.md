@@ -60,6 +60,23 @@ If you discover additional work needed:
 - If the plan needs significant restructuring, output `<promise>REPLAN</promise>` to trigger re-planning
 - **OUTPUT THE COMPLETION SIGNAL** when all tasks are done — this is mandatory, not optional
 
+## Browser Smoke Testing
+
+Unit tests alone are not sufficient for UI tasks. When a task involves user-facing
+behavior (HTML, CSS, DOM interaction), you **must** verify it works end-to-end in
+a real browser before marking it complete:
+
+1. Start the Vite dev server (`npx vite --port <port> &`).
+2. Use a headless browser (install `puppeteer` in `/tmp` if needed) to load the
+   page, perform the user flow (upload an image, click buttons, etc.), and assert
+   the expected outcome (elements visible, correct dimensions, no console errors).
+3. A test image (`r2d2.jpg`) is available in the project root for this purpose.
+
+Do not trust that DOM manipulation works just because the logic looks correct —
+CSS rules, display properties, and rendering side effects can only be verified in
+a browser. If something should become visible after a user action, assert that it
+actually is.
+
 ## Task Status Values
 
 - `planned` - Ready to work on

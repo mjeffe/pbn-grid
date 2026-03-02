@@ -34,7 +34,8 @@ data, along with the image's width and height in pixels.
 
 ### Color Quantization
 
-Reduce the image to `colorCount` colors using the **median-cut algorithm**.
+Reduce the image to `colorCount` colors using the **median-cut algorithm** with
+a **post-quantization merge step** to improve palette diversity.
 
 Median-cut is well-suited for this use case because:
 
@@ -43,7 +44,61 @@ Median-cut is well-suited for this use case because:
 - It is straightforward to implement in plain JavaScript with no external
   dependencies.
 
-Each pixel in the image is mapped to the nearest color in the quantized palette.
+#### Over-quantize and merge
+
+Plain median-cut allocates palette slots proportionally to pixel volume. This
+causes images with large uniform regions (e.g., a dark background) to consume
+multiple palette slots for near-identical colors, while small but visually
+striking features (e.g., blue eyes on a brown dog) are lost entirely.
+
+To address this, quantization uses an **over-quantize then merge** strategy:
+
+1. **Over-quantize:** Run median-cut targeting `colorCount × 3` colors (or
+   the actual number of distinct colors in the image, whichever is smaller).
+2. **Merge:** Iteratively find the two palette entries with the smallest
+   Euclidean distance in RGB space and merge them into one. When merging,
+   weight the resulting color by each entry's pixel count (so the more
+   prevalent color dominates the merged result). Repeat until the palette is
+   reduced to `colorCount` entries.
+3. **Re-index:** Assign final 1-based indices to the merged palette.
+
+This ensures that small but chromatically distinct color clusters survive
+quantization — they are far from other colors in RGB space and are therefore
+merged last.
+
+Each pixel in the image is mapped to the nearest color in the final palette.
+
+#### Testing the merge step
+
+- **Distinct minority colors survive:** Given an image that is 95% brown/tan
+  and 5% vivid blue, quantizing to 4 colors must produce a palette that
+  includes a blue entry rather than 4 shades of brown.
+- **Similar colors merge:** Given an image with 3 near-identical grays and 3
+  distinct other colors, quantizing to 4 colors should collapse the grays
+  into 1–2 entries.
+- **Pixel-weighted merge:** When two colors merge, the result should be closer
+  to the color with more pixels.
+- **Edge case — colorCount ≥ distinct colors:** If the image has fewer distinct
+  colors than requested, no merge is needed; return as-is.
+- **Deterministic:** Same input always produces the same palette.
+
+#### Future enhancements
+
+These are not in scope now but are worth considering if palette quality needs
+further improvement:
+
+- **Perceptual color distance:** Replace Euclidean RGB distance with a
+  perceptual metric (e.g., CIEDE2000 in Lab color space) so that merges
+  better reflect human perception of color similarity.
+- **K-means refinement:** After merge, run a few iterations of k-means
+  clustering on the pixel data using the merged palette as initial centroids.
+  This can improve palette accuracy at modest computational cost.
+- **Minimum distance threshold:** Enforce a minimum Euclidean distance between
+  all palette entries, guaranteeing that every color in the final puzzle is
+  visually distinguishable.
+- **User palette controls:** Allow users to pin, remove, or manually adjust
+  palette colors. This is a UI-layer feature and would not affect the core
+  algorithm.
 
 ### Grid Generation
 

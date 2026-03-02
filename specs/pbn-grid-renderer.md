@@ -27,7 +27,7 @@ The result object returned by `pbn-grid-core`'s `generatePBNGrid()`. See
 | `lineColor`     | string            | "#cccccc"| Color of grid lines (muted)                       |
 | `lineWidth`     | number            | 0.5      | Width of grid lines in canvas pixels              |
 | `numberColor`   | string            | "#999999"| Color of the numbers in cells (muted)             |
-| `fontSize`      | number            | 12       | Font size for cell numbers in canvas pixels       |
+| `fontSize`      | number \| null    | null     | Font size for cell numbers in canvas pixels (see below) |
 | `showLegend`    | boolean           | true     | Whether to render the legend alongside the grid   |
 
 ## Rendering Details
@@ -40,7 +40,12 @@ The result object returned by `pbn-grid-core`'s `generatePBNGrid()`. See
   gray) so they do not overpower the final painted image.
 - Each cell contains its palette index number, centered in the cell. Numbers
   should also be **muted** (gray) for the same reason.
-- Font size should scale reasonably with cell size.
+- Font size should **auto-scale with cell size** by default. When `fontSize` is
+  `null` (the default), the renderer calculates it as
+  `Math.max(8, Math.floor(cellSize * 0.45))`. This ensures numbers remain
+  readable at all grid sizes — small grids get appropriately sized numbers, and
+  large grids don't shrink them into illegibility. If `fontSize` is set to an
+  explicit number, that value is used as-is (no auto-scaling).
 
 ### Color Legend
 

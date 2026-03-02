@@ -35,6 +35,10 @@ src/
 - Standard file input accepting browser-supported image formats (JPG, PNG, GIF,
   WebP, etc.).
 - Display a thumbnail preview of the uploaded image.
+- The preview `<img>` element must be **hidden by default** (no `src` set
+  initially). It is shown only after the user selects a file. This avoids
+  browsers (notably Chrome) rendering a broken-image icon when no source is
+  set.
 
 ### Options Panel
 

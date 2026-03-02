@@ -23,6 +23,7 @@ imageInput.addEventListener('change', (e) => {
     reader.onload = (evt) => {
         const dataURL = evt.target.result;
         preview.src = dataURL;
+        preview.style.display = '';
 
         const img = new Image();
         img.onload = () => {

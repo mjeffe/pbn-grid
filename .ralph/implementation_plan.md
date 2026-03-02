@@ -82,7 +82,7 @@ Tests to add in `src/pbn-grid-renderer/__tests__/dimensions.test.js`:
 ## Task 9 — Web UI: Hide Preview Image by Default
 
 **Spec:** [web-ui.md](../specs/web-ui.md) — Image Upload section
-**Status:** `planned`
+**Status:** `complete`
 **Depends on:** None (modifies existing code)
 
 The spec states the preview `<img>` must be **hidden by default** (no `src` set

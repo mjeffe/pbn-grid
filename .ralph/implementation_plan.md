@@ -24,11 +24,16 @@ Create the project infrastructure files needed before any application code:
 - `docker-compose.yml` — single `app` service with volume mount for project
   root, anonymous volume for `node_modules`, port `5173:5173`, pass `--host`
   flag.
-- Update `.gitignore` to include `node_modules/`, `dist/`, etc.
+- Update `.gitignore` to include `node_modules/`, `dist/`, etc. (already
+  present in the template `.gitignore`, so just verify).
+- Create empty placeholder directories: `src/pbn-grid-core/`,
+  `src/pbn-grid-renderer/` (with `.gitkeep` or via first real files in Tasks 2–4).
 
 **Gotchas:**
 - `package.json` must have `"type": "module"` for ES module support in Node/Vitest.
-- Vite dev server needs `--host` flag in Docker for external access.
+- Vite dev server needs `--host` flag in Docker for external access. Pass via
+  `docker-compose.yml` command or npm script.
+- Vite root should be `src/` so that `index.html` is served at `/`.
 
 **Verify:** `npm install` succeeds, `npm run dev` starts Vite, `npm test` runs
 (even with zero tests).
@@ -50,6 +55,9 @@ Implement the median-cut color quantization algorithm:
     the largest range until `colorCount` buckets exist, compute average color
     per bucket, return 1-based indexed `PBNColor` array.
   - `PBNColor` shape: `{ index, r, g, b }` where `index` is 1-based.
+  - Include a helper `nearestColor(r, g, b, palette) → PBNColor` for mapping
+    arbitrary pixels to the nearest palette color (needed by grid generation
+    in Task 3).
 - Create `src/pbn-grid-core/__tests__/quantize.test.js`:
   - Correct number of colors returned for multi-color input.
   - Single-color data → one color returned.
@@ -79,6 +87,10 @@ Implement grid generation and wire up the core public API:
   - Apply defaults: `colorCount: 10`, `constrainBy: "width"`, `cellCount: 30`.
   - Calculate grid dimensions: constrained dimension = `cellCount`, other
     dimension = `Math.round(cellCount * aspectRatio)`.
+    - When `constrainBy === 'width'`: `gridWidth = cellCount`,
+      `gridHeight = Math.round(cellCount * (height / width))`.
+    - When `constrainBy === 'height'`: `gridHeight = cellCount`,
+      `gridWidth = Math.round(cellCount * (width / height))`.
   - Call `quantizeColors`, then `buildGrid`, assemble and return `PBNGridResult`:
     `{ grid, palette, gridWidth, gridHeight }`.
   - Re-export `quantizeColors` and `buildGrid`.
@@ -98,7 +110,7 @@ Implement grid generation and wire up the core public API:
 
 **Spec:** [pbn-grid-renderer.md](../specs/pbn-grid-renderer.md)
 **Status:** `planned`
-**Depends on:** Task 3 (uses `PBNGridResult` / `PBNColor` types)
+**Depends on:** Task 3 (uses `PBNGridResult` / `PBNColor` data shapes)
 
 Implement the canvas renderer:
 
@@ -113,6 +125,8 @@ Implement the canvas renderer:
   - Each entry: palette index number, filled color swatch, empty bordered
     swatch (for user to pencil in their own color).
   - Entries arranged in a wrapped row layout fitting canvas width.
+  - Export a function to calculate legend dimensions (needed by
+    `getCanvasDimensions`).
 - Create `src/pbn-grid-renderer/index.js` — public API:
   - `renderPBNGrid(canvas, gridResult, options?) → void`
     - Sets canvas width/height, renders grid then legend.
@@ -189,3 +203,20 @@ Create the GitHub Actions workflow:
   - Configure `environment` with GitHub Pages URL.
 
 **Verify:** Push to a branch → tests run. Push to main → tests run + deploy.
+
+---
+
+## Dependency Graph
+
+```
+Task 1 (Dev Scaffold)
+├── Task 2 (Quantization)
+│   └── Task 3 (Grid & Core API)
+│       ├── Task 4 (Renderer)
+│       │   └── Task 5 (Web UI) ← also depends on Task 3
+│       └── Task 5 (Web UI)
+└── Task 6 (CI/CD) ← independent of Tasks 2–5
+```
+
+**Build order:** 1 → 2 → 3 → 4 → 5 (sequential). Task 6 can be built any time
+after Task 1.

@@ -59,6 +59,11 @@ problematic:
 
 ### Result Display
 
+- The result section is hidden until the user clicks Generate.
+- After generation, the result section is shown (`display: block`) below the
+  options. Note: because the stylesheet sets `#result { display: none }`, the
+  inline style must be set to `block` explicitly — clearing it to `''` would
+  fall back to the stylesheet rule and remain hidden.
 - The rendered canvas is displayed on the page below the options.
 - Two export buttons appear alongside the result:
   - **"Download PNG"** — triggers a file download of the canvas as a PNG.

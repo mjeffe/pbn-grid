@@ -51,7 +51,7 @@ generateBtn.addEventListener('click', () => {
     const gridResult = generatePBNGrid(storedImageData, options);
     renderPBNGrid(canvas, gridResult);
 
-    result.style.display = '';
+    result.style.display = 'block';
 
     if (gridResult.gridWidth > 60 || gridResult.gridHeight > 60) {
         warning.textContent = `Grid is ${gridResult.gridWidth}×${gridResult.gridHeight} cells — `

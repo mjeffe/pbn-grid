@@ -1,6 +1,13 @@
 import { generatePBNGrid } from './pbn-grid-core/index.js';
 import { renderPBNGrid } from './pbn-grid-renderer/index.js';
 
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+const puzzleFilter = document.getElementById('puzzle-filter');
+const puzzleList = document.getElementById('puzzle-list');
+const puzzleEmpty = document.getElementById('puzzle-empty');
+
 const imageInput = document.getElementById('image-input');
 const preview = document.getElementById('preview');
 const colorCountInput = document.getElementById('color-count');
@@ -14,6 +21,71 @@ const downloadBtn = document.getElementById('download-btn');
 const printBtn = document.getElementById('print-btn');
 
 let storedImageData = null;
+let manifestPuzzles = [];
+
+tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+        tabButtons.forEach((b) => b.classList.remove('active'));
+        tabContents.forEach((c) => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+        result.style.display = 'none';
+    });
+});
+
+function renderPuzzleList(puzzles) {
+    puzzleList.innerHTML = '';
+    if (puzzles.length === 0) {
+        puzzleEmpty.textContent = puzzleFilter.value.trim()
+            ? 'No matching puzzles.'
+            : 'No puzzles available.';
+        puzzleEmpty.style.display = '';
+        return;
+    }
+    puzzleEmpty.style.display = 'none';
+    puzzles.forEach((puzzle) => {
+        const item = document.createElement('div');
+        item.className = 'puzzle-item';
+        const idSpan = `<span class="puzzle-id">#${puzzle.id}</span>`;
+        item.innerHTML = puzzle.title ? `${idSpan} — ${puzzle.title}` : idSpan;
+        item.addEventListener('click', () => loadPuzzle(puzzle));
+        puzzleList.appendChild(item);
+    });
+}
+
+async function loadPuzzle(puzzle) {
+    try {
+        const resp = await fetch(`puzzles/${puzzle.id}.json`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const gridResult = await resp.json();
+        renderPBNGrid(canvas, gridResult, { puzzleInfo: { id: puzzle.id, title: puzzle.title } });
+        result.style.display = 'block';
+    } catch (err) {
+        console.error('Failed to load puzzle:', err);
+    }
+}
+
+puzzleFilter.addEventListener('input', () => {
+    const filter = puzzleFilter.value.toLowerCase();
+    const filtered = manifestPuzzles.filter((p) =>
+        String(p.id).includes(filter) || (p.title && p.title.toLowerCase().includes(filter))
+    );
+    renderPuzzleList(filtered);
+});
+
+fetch('puzzles/manifest.json')
+    .then((resp) => {
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+    })
+    .then((data) => {
+        manifestPuzzles = data.puzzles || [];
+        renderPuzzleList(manifestPuzzles);
+    })
+    .catch(() => {
+        manifestPuzzles = [];
+        renderPuzzleList([]);
+    });
 
 imageInput.addEventListener('change', (e) => {
     const file = e.target.files[0];

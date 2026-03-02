@@ -10,33 +10,46 @@
     <h1>PBN-Grid</h1>
     <p>Upload an image and generate a printable paint-by-number grid.</p>
 
-    <section id="upload">
-        <label for="image-input">Choose an image:</label>
-        <input type="file" id="image-input" accept="image/*">
-        <img id="preview" alt="Preview" style="display: none">
-    </section>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="choose">Choose a Puzzle</button>
+        <button class="tab-btn" data-tab="create">Create Your Own</button>
+    </div>
 
-    <section id="options">
-        <div>
-            <label for="color-count">Color count:</label>
-            <input type="number" id="color-count" min="2" max="30" value="10">
-        </div>
-        <div>
-            <label for="constrain-by">Constrain by:</label>
-            <select id="constrain-by">
-                <option value="width">Width</option>
-                <option value="height">Height</option>
-            </select>
-        </div>
-        <div>
-            <label for="cell-count">Cell count:</label>
-            <input type="number" id="cell-count" min="5" max="100" value="30">
-        </div>
-    </section>
+    <div id="tab-choose" class="tab-content active">
+        <input type="text" id="puzzle-filter" placeholder="Filter by number or title...">
+        <div id="puzzle-list"></div>
+        <div id="puzzle-empty"></div>
+    </div>
 
-    <div id="warning" style="display: none;"></div>
+    <div id="tab-create" class="tab-content">
+        <section id="upload">
+            <label for="image-input">Choose an image:</label>
+            <input type="file" id="image-input" accept="image/*">
+            <img id="preview" alt="Preview" style="display: none">
+        </section>
 
-    <button id="generate-btn" disabled>Generate</button>
+        <section id="options">
+            <div>
+                <label for="color-count">Color count:</label>
+                <input type="number" id="color-count" min="2" max="30" value="10">
+            </div>
+            <div>
+                <label for="constrain-by">Constrain by:</label>
+                <select id="constrain-by">
+                    <option value="width">Width</option>
+                    <option value="height">Height</option>
+                </select>
+            </div>
+            <div>
+                <label for="cell-count">Cell count:</label>
+                <input type="number" id="cell-count" min="5" max="100" value="30">
+            </div>
+        </section>
+
+        <div id="warning" style="display: none;"></div>
+
+        <button id="generate-btn" disabled>Generate</button>
+    </div>
 
     <section id="result" style="display: none;">
         <canvas id="result-canvas"></canvas>

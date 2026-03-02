@@ -61,7 +61,7 @@ renderer support for puzzle info, and the tabbed UI for browsing puzzles.
 ### 3. Web UI: Tabbed layout and puzzle browsing
 
 - **Spec:** `specs/web-ui.md`, `specs/pre-generated-puzzles.md`
-- **Status:** `planned`
+- **Status:** `complete`
 - **Description:**
   - Restructure `index.html` with a tabbed interface:
     - Tab 1: "Choose a Puzzle" (default active)

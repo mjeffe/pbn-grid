@@ -104,3 +104,78 @@ button:hover {
     display: flex;
     gap: 0.75rem;
 }
+
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    background: #eee;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-right: 2px;
+}
+
+.tab-btn:hover {
+    background: #e0e0e0;
+}
+
+.tab-btn.active {
+    background: #fafafa;
+    border-bottom: 2px solid #fafafa;
+    margin-bottom: -2px;
+    font-weight: 600;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+#puzzle-filter {
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+}
+
+#puzzle-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.puzzle-item {
+    padding: 0.6rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.puzzle-item:hover {
+    background: #f0f4ff;
+}
+
+.puzzle-item:last-child {
+    border-bottom: none;
+}
+
+.puzzle-item .puzzle-id {
+    color: #888;
+}
+
+#puzzle-empty {
+    padding: 1rem;
+    color: #888;
+}

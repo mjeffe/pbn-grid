@@ -31,7 +31,7 @@ renderer support for puzzle info, and the tabbed UI for browsing puzzles.
 ### 2. Pre-generated puzzles: Generation script
 
 - **Spec:** `specs/pre-generated-puzzles.md`
-- **Status:** `planned`
+- **Status:** `complete`
 - **Description:**
   - Create `scripts/generate-puzzles.js` — a Node.js CLI script.
   - Add `sharp` as a dev dependency for image decoding.

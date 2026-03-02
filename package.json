@@ -6,9 +6,11 @@
     "scripts": {
         "dev": "vite",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "generate-puzzles": "node scripts/generate-puzzles.js"
     },
     "devDependencies": {
+        "sharp": "^0.34.5",
         "vite": "^6.3.5",
         "vitest": "^3.2.1"
     },

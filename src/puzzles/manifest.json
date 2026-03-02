@@ -1,0 +1,21 @@
+{
+    "options": {
+        "colorCount": 10,
+        "cellCount": 30,
+        "constrainBy": "width"
+    },
+    "puzzles": [
+        {
+            "id": 1,
+            "filename": "dog.jpg",
+            "hash": "5d0dd013f1bce1ff2659351491c66e76c4d1de3495448fee03688e2625518f25",
+            "title": "Dog"
+        },
+        {
+            "id": 2,
+            "filename": "r2d2.jpg",
+            "hash": "c6fda2569746b87128a9ab573622e51d577b318221820d23077412ea34fdf408",
+            "title": "R2d2"
+        }
+    ]
+}

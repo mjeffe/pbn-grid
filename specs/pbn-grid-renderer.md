@@ -29,6 +29,7 @@ The result object returned by `pbn-grid-core`'s `generatePBNGrid()`. See
 | `numberColor`   | string            | "#999999"| Color of the numbers in cells (muted)             |
 | `fontSize`      | number \| null    | null     | Font size for cell numbers in canvas pixels (see below) |
 | `showLegend`    | boolean           | true     | Whether to render the legend alongside the grid   |
+| `puzzleInfo`    | object \| null    | null     | Optional puzzle info to display below the legend (see below) |
 
 ## Rendering Details
 
@@ -61,6 +62,27 @@ Each legend entry consists of:
 
 Legend entries are arranged in a row or wrapped grid layout to fit the canvas
 width.
+
+### Puzzle Info Line
+
+When `puzzleInfo` is provided, a small text line is rendered on the canvas
+**below the legend**:
+
+```
+Puzzle #14 — Dog
+```
+
+If no title is set, just the number:
+
+```
+Puzzle #14
+```
+
+The `puzzleInfo` object has the shape `{ id: number, title?: string }`.
+
+This ensures the puzzle number appears on printed output for reference by
+returning users. The canvas dimensions must account for the extra height when
+puzzle info is present.
 
 ## API
 

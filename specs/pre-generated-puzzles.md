@@ -158,15 +158,3 @@ Puzzle #14
 This ensures the puzzle number appears on printed output for reference by
 returning users.
 
-## File Changes Summary
-
-The following existing specs and files will need updates:
-
-- **`specs/web-ui.md`** — Add tabbed layout, "Choose a Puzzle" tab, shared
-  result area.
-- **`specs/pbn-grid-renderer.md`** — Add optional puzzle info line below the
-  legend.
-- **`specs/dev-environment.md`** — Add `scripts/` directory, generation
-  script, `puzzles/` directories, image-loading dev dependency, new npm
-  script.
-- **`.gitignore`** — Add `puzzles/source-images/`.

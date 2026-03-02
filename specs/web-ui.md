@@ -2,8 +2,9 @@
 
 ## Purpose
 
-A single-page web interface that allows users to upload an image, configure
-puzzle options, generate the paint-by-number grid, and print or download it.
+A single-page web interface that allows users to browse pre-generated puzzles or
+upload their own image, configure puzzle options, generate the paint-by-number
+grid, and print or download it.
 
 ## Location
 
@@ -14,7 +15,33 @@ src/
 └── app.js          # UI logic, imports pbn-grid-core and pbn-grid-renderer
 ```
 
-## User Flow
+## Tabbed Layout
+
+The main page uses a tabbed interface with two tabs:
+
+```
+[ Choose a Puzzle ]    [ Create Your Own ]
+```
+
+- **"Choose a Puzzle"** is the default active tab.
+- **"Create Your Own"** contains the existing upload + options + generate flow,
+  unchanged.
+- The result/canvas area below the tabs is shared — both tabs render into the
+  same area with the same download/print buttons.
+
+## User Flow — Choose a Puzzle
+
+1. **Browse** — On page load, the app fetches `puzzles/manifest.json` and
+   displays a scrollable list of available puzzles, each showing its ID number
+   and title (e.g., `#1 — Dog`).
+2. **Filter** — A search/filter input at the top filters the list by puzzle
+   number or title as the user types.
+3. **Select** — Clicking a puzzle entry fetches `puzzles/{id}.json` and renders
+   the grid using the default renderer options.
+4. **Export** — Download/print buttons work the same as the "Create Your Own"
+   flow.
+
+## User Flow — Create Your Own
 
 1. **Upload image** — User selects an image file from their device.
 2. **Configure options:**
@@ -26,9 +53,20 @@ src/
 5. **Export:**
    - **Download PNG** — Click a button to download the grid as a PNG image.
    - **Print** — Click a button to open the grid in a new browser tab for
-     printing (clean page, no UI controls).
+     printing.
 
 ## UI Components
+
+### Choose a Puzzle Tab
+
+- On page load, fetch `puzzles/manifest.json`.
+- Display a **scrollable list** of available puzzles, each showing its ID
+  number and title (e.g., `#1 — Dog`).
+- A **search/filter input** at the top filters the list by puzzle number or
+  title as the user types.
+- Clicking a puzzle entry fetches `puzzles/{id}.json`, renders the grid using
+  the default renderer options, and displays the result with download/print
+  buttons.
 
 ### Image Upload
 

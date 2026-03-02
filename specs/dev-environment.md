@@ -19,11 +19,20 @@ pbn-grid/
 │   ├── pbn-grid-renderer.md
 │   ├── web-ui.md
 │   ├── dev-environment.md
-│   └── ci-cd.md
+│   ├── ci-cd.md
+│   └── pre-generated-puzzles.md
+├── scripts/
+│   └── generate-puzzles.js    # Node.js script to generate puzzle JSON from images
+├── puzzles/
+│   └── source-images/         # Source images for generation (gitignored)
 └── src/
     ├── index.html             # Main web page
     ├── style.css              # Web page styles
     ├── app.js                 # Web page UI logic
+    ├── puzzles/               # Generated puzzle data (committed, deployed)
+    │   ├── manifest.json      # Puzzle manifest
+    │   ├── 1.json             # PBNGridResult for puzzle #1
+    │   └── ...
     ├── pbn-grid-core/         # Core library (no DOM dependencies)
     │   ├── index.js           # Public API: generatePBNGrid, quantizeColors, buildGrid
     │   ├── quantize.js        # Median-cut color quantization
@@ -89,11 +98,12 @@ Vitest is used for unit testing, primarily for `pbn-grid-core`.
 
 ### npm Scripts
 
-| Script          | Command              | Description                        |
-| --------------- | -------------------- | ---------------------------------- |
-| `dev`           | `vite`               | Start the Vite dev server          |
-| `test`          | `vitest run`         | Run all tests once                 |
-| `test:watch`    | `vitest`             | Run tests in watch mode            |
+| Script             | Command                              | Description                        |
+| ------------------ | ------------------------------------ | ---------------------------------- |
+| `dev`              | `vite`                               | Start the Vite dev server          |
+| `test`             | `vitest run`                         | Run all tests once                 |
+| `test:watch`       | `vitest`                             | Run tests in watch mode            |
+| `generate-puzzles` | `node scripts/generate-puzzles.js`   | Generate puzzle JSON from source images |
 
 ## Dependencies
 
@@ -101,6 +111,7 @@ Vitest is used for unit testing, primarily for `pbn-grid-core`.
 
 - `vite` — Dev server
 - `vitest` — Test runner
+- `sharp` — Image decoding for the puzzle generation script (Node.js only)
 
 ### Production Dependencies
 

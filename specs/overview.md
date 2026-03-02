@@ -2,9 +2,10 @@
 
 ## Summary
 
-PBN-Grid is a client-side web application that converts an uploaded image into a
-grid-based, printable paint-by-number puzzle. The grid uses square cells, each
-labeled with a number corresponding to a color in a generated palette.
+PBN-Grid is a client-side web application that converts images into grid-based,
+printable paint-by-number puzzles. Users can upload their own image or browse a
+collection of pre-generated puzzles. The grid uses square cells, each labeled
+with a number corresponding to a color in a generated palette.
 
 This is **not** a contour-based paint-by-number — it is a literal grid where
 every cell is a square and contains a number.
@@ -13,10 +14,12 @@ every cell is a square and contains a number.
 
 - Allow a user to upload an image, choose grid size and color count, and
   generate a printable paint-by-number grid.
+- Provide a browsable collection of pre-generated puzzles ready to print.
 - All processing happens in the browser — no server required.
 - The app is a static site (plain HTML, CSS, JavaScript) with no build step
   required for production.
-- The core library (`pbn-grid`) is standalone and reusable outside the web UI.
+- The core library (`pbn-grid`) is standalone and reusable outside the web UI
+  (e.g., in a Node.js script for pre-generating puzzles).
 
 ## Tech Stack
 

@@ -2,221 +2,111 @@
 
 > **Status:** Complete — all tasks planned, ready for build.
 >
-> **Current state:** Greenfield — no `src/` directory, `package.json`, or any
-> implementation files exist yet. Everything below must be created from scratch.
+> **Current state:** Tasks 1–6 from the original plan are complete. All infrastructure,
+> core library, renderer, web UI, and CI/CD are implemented and tests pass (26/26).
+> The remaining tasks address spec gaps found during review.
 
 ---
 
-## Task 1 — Dev Environment Scaffold
+## Task 7 — Core: Over-Quantize and Merge Strategy
 
-**Spec:** [dev-environment.md](../specs/dev-environment.md)
-**Status:** `complete`
+**Spec:** [pbn-grid-core.md](../specs/pbn-grid-core.md) — "Over-quantize and merge" section
+**Status:** `planned`
+**Depends on:** None (modifies existing code)
 
-Create the project infrastructure files needed before any application code:
+The current `quantizeColors()` runs plain median-cut directly to `colorCount`.
+The spec requires an over-quantize-then-merge strategy to preserve minority
+colors:
 
-- `package.json` with `dev`, `test`, and `test:watch` scripts; `vite` and
-  `vitest` as dev dependencies; no production dependencies; `"type": "module"`.
-- `vite.config.js` — configure Vite to serve `src/` as root with
-  `src/index.html` as entry.
-- `vitest.config.js` — configure Vitest for the project.
-- `Dockerfile` — `node:lts-slim`, working dir `/app`, `npm install`, expose
-  5173, default cmd `npm run dev`.
-- `docker-compose.yml` — single `app` service with volume mount for project
-  root, anonymous volume for `node_modules`, port `5173:5173`, pass `--host`
-  flag.
-- Update `.gitignore` to include `node_modules/`, `dist/`, etc. (already
-  present in the template `.gitignore`, so just verify).
-- Create empty placeholder directories: `src/pbn-grid-core/`,
-  `src/pbn-grid-renderer/` (with `.gitkeep` or via first real files in Tasks 2–4).
+1. **Over-quantize:** Run median-cut targeting `colorCount × 3` colors (or the
+   actual number of distinct colors, whichever is smaller).
+2. **Merge:** Iteratively find the two palette entries with the smallest
+   Euclidean distance in RGB space. When merging, weight the result by each
+   entry's pixel count (more prevalent color dominates). Repeat until the
+   palette has `colorCount` entries.
+3. **Re-index:** Assign final 1-based indices to the merged palette.
 
-**Gotchas:**
-- `package.json` must have `"type": "module"` for ES module support in Node/Vitest.
-- Vite dev server needs `--host` flag in Docker for external access. Pass via
-  `docker-compose.yml` command or npm script.
-- Vite root should be `src/` so that `index.html` is served at `/`.
+Changes needed in `src/pbn-grid-core/quantize.js`:
+- Track pixel count per bucket through the median-cut process.
+- After median-cut, build an intermediate palette with pixel counts.
+- Implement the merge loop: find closest pair by Euclidean RGB distance,
+  merge with pixel-weighted average, repeat until at target count.
+- Re-index final palette entries 1-based.
 
-**Verify:** `npm install` succeeds, `npm run dev` starts Vite, `npm test` runs
-(even with zero tests).
+Tests to add/update in `src/pbn-grid-core/__tests__/quantize.test.js`:
+- **Distinct minority colors survive:** 95% brown/tan + 5% vivid blue →
+  quantize to 4 colors → palette includes a blue entry.
+- **Similar colors merge:** 3 near-identical grays + 3 distinct colors →
+  quantize to 4 → grays collapse to 1–2 entries.
+- **Pixel-weighted merge:** When two colors merge, result is closer to the
+  color with more pixels.
+- **Edge case — colorCount ≥ distinct colors:** Image with fewer distinct
+  colors than requested → no merge needed, returns as-is.
+- **Deterministic:** Same input always produces the same palette.
+- Existing tests should continue to pass (they don't assert exact color values
+  that would break with the improved algorithm).
 
----
-
-## Task 2 — Core Library: Color Quantization
-
-**Spec:** [pbn-grid-core.md](../specs/pbn-grid-core.md)
-**Status:** `complete`
-**Depends on:** Task 1
-
-Implement the median-cut color quantization algorithm:
-
-- Create `src/pbn-grid-core/quantize.js`:
-  - `quantizeColors(imageData, colorCount) → PBNColor[]`
-  - Median-cut algorithm: collect RGB values from RGBA pixel data (skip fully
-    transparent pixels), recursively split color buckets along the channel with
-    the largest range until `colorCount` buckets exist, compute average color
-    per bucket, return 1-based indexed `PBNColor` array.
-  - `PBNColor` shape: `{ index, r, g, b }` where `index` is 1-based.
-  - Include a helper `nearestColor(r, g, b, palette) → PBNColor` for mapping
-    arbitrary pixels to the nearest palette color (needed by grid generation
-    in Task 3).
-- Create `src/pbn-grid-core/__tests__/quantize.test.js`:
-  - Correct number of colors returned for multi-color input.
-  - Single-color data → one color returned.
-  - Two distinct colors → two colors returned with correct RGB values.
-  - `colorCount` exceeding actual distinct colors in image.
-  - 1×1 image.
-
-**Verify:** `npm test` — all quantize tests pass.
+**Verify:** `npm test` — all quantize tests pass (old and new).
 
 ---
 
-## Task 3 — Core Library: Grid Generation & Public API
+## Task 8 — Renderer: Auto-Scaling Font Size
 
-**Spec:** [pbn-grid-core.md](../specs/pbn-grid-core.md)
-**Status:** `complete`
-**Depends on:** Task 2
+**Spec:** [pbn-grid-renderer.md](../specs/pbn-grid-renderer.md) — fontSize option
+**Status:** `planned`
+**Depends on:** None (modifies existing code)
 
-Implement grid generation and wire up the core public API:
+The spec says `fontSize` default should be `null`, and when null, auto-calculate
+as `Math.max(8, Math.floor(cellSize * 0.45))`. Currently `fontSize` defaults to
+`12` (hardcoded).
 
-- Create `src/pbn-grid-core/grid.js`:
-  - `buildGrid(imageData, palette, gridWidth, gridHeight) → number[][]`
-  - Divide image into rectangular pixel regions per cell, find the dominant
-    (most frequent) quantized color per region using nearest-color matching
-    against the palette, return 2D array `[row][col]` of 1-based palette indices.
-- Create `src/pbn-grid-core/index.js` — public API:
-  - `generatePBNGrid(imageData, options) → PBNGridResult`
-  - Apply defaults: `colorCount: 10`, `constrainBy: "width"`, `cellCount: 30`.
-  - Calculate grid dimensions: constrained dimension = `cellCount`, other
-    dimension = `Math.round(cellCount * aspectRatio)`.
-    - When `constrainBy === 'width'`: `gridWidth = cellCount`,
-      `gridHeight = Math.round(cellCount * (height / width))`.
-    - When `constrainBy === 'height'`: `gridHeight = cellCount`,
-      `gridWidth = Math.round(cellCount * (width / height))`.
-  - Call `quantizeColors`, then `buildGrid`, assemble and return `PBNGridResult`:
-    `{ grid, palette, gridWidth, gridHeight }`.
-  - Re-export `quantizeColors` and `buildGrid`.
-- Create `src/pbn-grid-core/__tests__/grid.test.js`:
-  - Grid dimension calculation (aspect ratio, rounding) for both `constrainBy`
-    values.
-  - Solid-color image → all cells same index.
-  - Two-color vertical split → correct indices per column.
-  - Default option application when options omitted.
-  - Edge case: very small image, 1×1 grid.
+Changes needed:
+- `src/pbn-grid-renderer/index.js`: Change `DEFAULT_OPTIONS.fontSize` to `null`.
+  In `renderPBNGrid()` and `getCanvasDimensions()`, resolve `null` to the
+  auto-scaled value before passing to `renderGrid()`.
+- `src/pbn-grid-renderer/grid-renderer.js`: No changes needed if fontSize is
+  resolved before it arrives here.
+- Update JSDoc `@typedef RenderOptions` to reflect `fontSize` as
+  `number | null` with default `null`.
 
-**Verify:** `npm test` — all core tests pass.
+Tests to add in `src/pbn-grid-renderer/__tests__/dimensions.test.js`:
+- Verify default fontSize is null (auto-scale).
+- Verify explicit fontSize overrides auto-scale.
+- (Dimension tests shouldn't be affected since fontSize doesn't change canvas
+  dimensions, but verify nothing breaks.)
+
+**Verify:** `npm test` — all renderer tests pass.
 
 ---
 
-## Task 4 — Renderer: Grid & Legend Rendering
+## Task 9 — Web UI: Hide Preview Image by Default
 
-**Spec:** [pbn-grid-renderer.md](../specs/pbn-grid-renderer.md)
-**Status:** `complete`
-**Depends on:** Task 3 (uses `PBNGridResult` / `PBNColor` data shapes)
+**Spec:** [web-ui.md](../specs/web-ui.md) — Image Upload section
+**Status:** `planned`
+**Depends on:** None (modifies existing code)
 
-Implement the canvas renderer:
+The spec states the preview `<img>` must be **hidden by default** (no `src` set
+initially) and shown only after the user selects a file. This avoids Chrome's
+broken-image icon.
 
-- Create `src/pbn-grid-renderer/grid-renderer.js`:
-  - Render grid cells as white squares with muted gray grid lines (`lineColor`,
-    `lineWidth`).
-  - Center 1-based palette index numbers in each cell using muted gray text
-    (`numberColor`, `fontSize`).
-  - Font size should scale reasonably with `cellSize`.
-- Create `src/pbn-grid-renderer/legend-renderer.js`:
-  - Render legend below (or beside) the grid on the same canvas.
-  - Each entry: palette index number, filled color swatch, empty bordered
-    swatch (for user to pencil in their own color).
-  - Entries arranged in a wrapped row layout fitting canvas width.
-  - Export a function to calculate legend dimensions (needed by
-    `getCanvasDimensions`).
-- Create `src/pbn-grid-renderer/index.js` — public API:
-  - `renderPBNGrid(canvas, gridResult, options?) → void`
-    - Sets canvas width/height, renders grid then legend.
-  - `getCanvasDimensions(gridResult, options?) → { width, height }`
-    - Calculates required canvas size including legend area.
-  - Apply render option defaults: `cellSize: 30`, `lineColor: '#cccccc'`,
-    `lineWidth: 0.5`, `numberColor: '#999999'`, `fontSize: 12`,
-    `showLegend: true`.
-- Create `src/pbn-grid-renderer/__tests__/dimensions.test.js`:
-  - `getCanvasDimensions` for various grid sizes and cell sizes.
-  - Legend enabled vs. disabled affects height.
-  - Canvas dimensions account for legend space.
+Changes needed:
+- `src/index.html`: Add `style="display: none"` (or `hidden` attribute) to the
+  `#preview` img element.
+- `src/app.js`: In the image upload handler, set `preview.style.display = ''`
+  (or remove `hidden` attribute) when displaying the thumbnail preview.
 
-**Verify:** `npm test` — all renderer dimension tests pass.
-
----
-
-## Task 5 — Web UI
-
-**Spec:** [web-ui.md](../specs/web-ui.md)
-**Status:** `complete`
-**Depends on:** Task 3, Task 4
-
-Create the single-page web interface:
-
-- Create `src/index.html`:
-  - File input for image upload with thumbnail preview area.
-  - Options panel: color count (numeric, min 2, max 30, default 10), constrain
-    by (dropdown: Width/Height), cell count (numeric, min 5, max 100,
-    default 30).
-  - Warning area for large grids (either dimension > ~60 cells).
-  - Generate button (disabled until image uploaded).
-  - Result area: canvas container, Download PNG button, Print button.
-  - Load `app.js` as `<script type="module">`.
-- Create `src/style.css`:
-  - Clean, minimal, functional desktop-focused design.
-  - Style all UI components: upload area, options panel, buttons, canvas,
-    warnings.
-- Create `src/app.js`:
-  - Image upload: read file via `FileReader`, display thumbnail preview, load
-    into off-screen canvas to extract `ImageData`.
-  - Generate click handler: call `generatePBNGrid()` from core, then
-    `renderPBNGrid()` from renderer, display result.
-  - Warning logic: after computing grid dimensions, show warning if either
-    dimension exceeds ~60 cells.
-  - Download PNG: `canvas.toBlob()` → `URL.createObjectURL()` →
-    programmatic `<a download="pbn-grid.png">` click → revoke URL.
-  - Print: open new tab, write minimal HTML with `<img>` of canvas data URL,
-    call `window.print()`.
-  - Import paths: `'./pbn-grid-core/index.js'` and
-    `'./pbn-grid-renderer/index.js'` (relative, no bare specifiers).
-
-**Verify:** `npm run dev` — app loads. Manual end-to-end test: upload image →
-configure → generate → download/print works.
-
----
-
-## Task 6 — CI/CD Pipeline
-
-**Spec:** [ci-cd.md](../specs/ci-cd.md)
-**Status:** `complete`
-**Depends on:** Task 1
-
-Create the GitHub Actions workflow:
-
-- Create `.github/workflows/ci.yml`:
-  - Trigger on push to all branches and pull requests.
-  - Test job: checkout → setup Node (LTS) → `npm ci` → `npm test`.
-  - Deploy job (main only, tests must pass): use
-    `actions/upload-pages-artifact` to upload `src/` directory, then
-    `actions/deploy-pages` to deploy.
-  - Set `permissions` for Pages deployment (`pages: write`,
-    `id-token: write`).
-  - Configure `environment` with GitHub Pages URL.
-
-**Verify:** Push to a branch → tests run. Push to main → tests run + deploy.
+**Verify:** Manual — open app in browser, confirm no broken image icon on load,
+confirm preview appears after file selection.
 
 ---
 
 ## Dependency Graph
 
 ```
-Task 1 (Dev Scaffold)
-├── Task 2 (Quantization)
-│   └── Task 3 (Grid & Core API)
-│       ├── Task 4 (Renderer)
-│       │   └── Task 5 (Web UI) ← also depends on Task 3
-│       └── Task 5 (Web UI)
-└── Task 6 (CI/CD) ← independent of Tasks 2–5
+Task 7 (Over-Quantize & Merge)   — independent
+Task 8 (Auto-Scaling Font Size)  — independent
+Task 9 (Hide Preview Image)      — independent
 ```
 
-**Build order:** 1 → 2 → 3 → 4 → 5 (sequential). Task 6 can be built any time
-after Task 1.
+All three tasks are independent and can be built in any order.
+Recommended order: 7 → 8 → 9 (core logic first, then renderer, then UI polish).

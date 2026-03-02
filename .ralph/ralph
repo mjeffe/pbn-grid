@@ -1,0 +1,322 @@
+#!/bin/bash
+# Ralph Wiggum Loop - main executable
+#
+# Usage:
+#   ralph plan [max_iterations]
+#   ralph build [max_iterations]
+#   ralph prompt <file> [max_iterations]
+#   ralph update
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Self-relative path resolution
+# ---------------------------------------------------------------------------
+RALPH_DIR="$(dirname "$(readlink -f "$0")")"
+RALPH_HOME="$(realpath --relative-to=. "$RALPH_DIR")"
+
+# ---------------------------------------------------------------------------
+# Defaults (may be overridden by config)
+# ---------------------------------------------------------------------------
+DEFAULT_MAX_ITERATIONS=10
+MAX_RETRIES=3
+SPECS_DIR="specs"
+
+# ---------------------------------------------------------------------------
+# Argument parsing
+# ---------------------------------------------------------------------------
+MODE=""
+MAX_ITERATIONS=""
+PROMPT_FILE=""
+
+usage() {
+    cat <<EOF
+Usage: ralph <mode> [max_iterations]
+
+Modes:
+  plan   [max_iterations]              Run plan mode iterations
+  build  [max_iterations]              Run build mode iterations
+  prompt <file> [max_iterations]       Run an ad-hoc prompt from file in the loop
+  update                               Update ralph to the latest upstream version
+
+Examples:
+  ralph plan
+  ralph build 20
+  ralph prompt prompts/my-prompt.md
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        plan|build|prompt|update)
+            MODE="$1"
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            if [[ -z "$MODE" ]]; then
+                echo "Error: unknown option or mode: $1" >&2
+                usage >&2
+                exit 1
+            fi
+            if [[ "$MODE" == "prompt" && -z "$PROMPT_FILE" ]]; then
+                PROMPT_FILE="$1"
+            else
+                MAX_ITERATIONS="$1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$MODE" ]]; then
+    usage
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Load configuration
+# ---------------------------------------------------------------------------
+CONFIG_FILE="$RALPH_DIR/config"
+
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo "Error: config file not found: $CONFIG_FILE" >&2
+    exit 1
+fi
+
+# shellcheck source=/dev/null
+source "$CONFIG_FILE"
+
+: "${MAX_ITERATIONS:=${DEFAULT_MAX_ITERATIONS:-10}}"
+
+# ---------------------------------------------------------------------------
+# Load agent script
+# ---------------------------------------------------------------------------
+if [[ "$MODE" != "update" ]]; then
+    AGENT_SCRIPT="$RALPH_DIR/agents/${AGENT}.sh"
+    if [[ ! -f "$AGENT_SCRIPT" ]]; then
+        echo "Error: agent script not found: $AGENT_SCRIPT" >&2
+        exit 1
+    fi
+    # shellcheck source=/dev/null
+    source "$AGENT_SCRIPT"
+fi
+
+# ---------------------------------------------------------------------------
+# Prerequisite validation
+# ---------------------------------------------------------------------------
+validate_prerequisites() {
+    if [[ ! -d ".git" ]]; then
+        echo "Error: not a git repository (no .git directory found)" >&2
+        exit 1
+    fi
+
+    [[ "$MODE" == "update" ]] && return
+
+    if ! command -v "$AGENT_CLI" &>/dev/null; then
+        echo "Error: agent CLI not found in PATH: $AGENT_CLI" >&2
+        exit 1
+    fi
+
+    if [[ ! -d "$SPECS_DIR" ]]; then
+        echo "Error: specs directory not found: $SPECS_DIR" >&2
+        exit 1
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Session log initialization
+# ---------------------------------------------------------------------------
+init_session_log() {
+    local log_dir="$RALPH_DIR/logs"
+    mkdir -p "$log_dir"
+    SESSION_LOG="$log_dir/session-$(date +%Y%m%d-%H%M%S)-${MODE}.log"
+    touch "$SESSION_LOG"
+}
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+log() {
+    echo "$*" | tee -a "$SESSION_LOG"
+}
+
+# ---------------------------------------------------------------------------
+# Template variable substitution
+# ---------------------------------------------------------------------------
+prepare_prompt() {
+    local template_file="$1"
+    local output_file="$2"
+    export MODE SPECS_DIR RALPH_HOME
+    envsubst < "$template_file" > "$output_file"
+}
+
+# ---------------------------------------------------------------------------
+# Signal detection
+# ---------------------------------------------------------------------------
+check_signals() {
+    local output_file="$1"
+    local response
+    response=$(agent_extract_response "$output_file")
+    if echo "$response" | grep -qF '<promise>COMPLETE</promise>'; then return 2; fi
+    if echo "$response" | grep -qF '<promise>REPLAN</promise>'; then return 3; fi
+    return 0
+}
+
+# ---------------------------------------------------------------------------
+# Run a single iteration (with retries)
+# Returns:
+#   0 - success, continue looping
+#   1 - retries exhausted
+#   2 - completion signal detected
+#   3 - replan signal detected
+# ---------------------------------------------------------------------------
+run_iteration() {
+    local iteration="$1"
+    local prompt_template="$2"
+    local retry=0
+
+    while [[ $retry -le $MAX_RETRIES ]]; do
+        local iter_start
+        iter_start=$(date +%s)
+
+        log "================================================================================"
+        log "ITERATION ${iteration}  (${MODE})  $(date '+%Y-%m-%d %H:%M:%S')"
+        log "================================================================================"
+
+        local tmp_prompt
+        tmp_prompt=$(mktemp)
+        prepare_prompt "$prompt_template" "$tmp_prompt"
+
+        type agent_pre_iteration &>/dev/null && agent_pre_iteration
+
+        local agent_rc=0
+        agent_invoke "$tmp_prompt" \
+            | tee "$RALPH_DIR/last_agent_output" \
+            | agent_format_display \
+            | tee -a "$SESSION_LOG" \
+            || agent_rc=$?
+
+        rm -f "$tmp_prompt"
+
+
+        log "================================================================================"
+        local duration=$(( $(date +%s) - iter_start ))
+        log "ITERATION ${iteration} DONE in ${duration}s ----"
+
+        type agent_post_iteration &>/dev/null && agent_post_iteration
+        log "================================================================================"
+
+        if [[ $agent_rc -ne 0 ]]; then
+            retry=$(( retry + 1 ))
+            if [[ $retry -le $MAX_RETRIES ]]; then
+                log "Agent failure, retry ${retry}/${MAX_RETRIES}..."
+                continue
+            fi
+            return 1
+        fi
+
+        local signal_rc=0
+        check_signals "$RALPH_DIR/last_agent_output" || signal_rc=$?
+        return $signal_rc
+    done
+
+    return 1
+}
+
+# ---------------------------------------------------------------------------
+# Main loop
+# ---------------------------------------------------------------------------
+run_loop() {
+    local prompt_template="$1"
+    local session_start iteration=0 success=0 failures=0
+    local exit_reason="max iterations reached" exit_code=0
+    session_start=$(date +%s)
+
+    while [[ $iteration -lt $MAX_ITERATIONS ]]; do
+        iteration=$(( iteration + 1 ))
+
+        local rc=0
+        run_iteration "$iteration" "$prompt_template" || rc=$?
+
+        case $rc in
+            0) success=$(( success + 1 )) ;;
+            2) success=$(( success + 1 )); exit_reason="completion signal"; break ;;
+            3) success=$(( success + 1 )); exit_reason="replan signal"; exit_code=3
+               log "Agent requested re-planning. Run 'ralph plan' to regenerate."
+               break ;;
+            *) failures=$(( failures + 1 )); exit_reason="agent failure exceeded retries"; exit_code=4
+               break ;;
+        esac
+    done
+
+    log "================================================================================"
+    log "SESSION SUMMARY"
+    log "================================================================================"
+    log "Iterations: ${iteration}  Successful: ${success}  Failed: ${failures}"
+    log "Duration: $(( $(date +%s) - session_start ))s"
+    log "Exit: ${exit_reason} (code ${exit_code})"
+    log "================================================================================"
+    exit "$exit_code"
+}
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+validate_prerequisites
+init_session_log
+
+case "$MODE" in
+    plan)
+        PROMPT_TEMPLATE="$RALPH_DIR/prompts/plan.md"
+        if [[ ! -f "$PROMPT_TEMPLATE" ]]; then
+            echo "Error: plan prompt template not found: $PROMPT_TEMPLATE" >&2
+            exit 1
+        fi
+        run_loop "$PROMPT_TEMPLATE"
+        ;;
+
+    build)
+        if [[ ! -f "$RALPH_DIR/implementation_plan.md" ]]; then
+            echo "Implementation plan not found. Run 'ralph plan' first." >&2
+            exit 2
+        fi
+        PROMPT_TEMPLATE="$RALPH_DIR/prompts/build.md"
+        if [[ ! -f "$PROMPT_TEMPLATE" ]]; then
+            echo "Error: build prompt template not found: $PROMPT_TEMPLATE" >&2
+            exit 1
+        fi
+        run_loop "$PROMPT_TEMPLATE"
+        ;;
+
+    prompt)
+        if [[ -z "$PROMPT_FILE" ]]; then
+            echo "Error: prompt mode requires a file argument" >&2
+            usage >&2
+            exit 1
+        fi
+        if [[ ! -f "$PROMPT_FILE" ]]; then
+            echo "Error: prompt file not found: $PROMPT_FILE" >&2
+            exit 1
+        fi
+        if ! grep -qF '<promise>COMPLETE</promise>' "$PROMPT_FILE"; then
+            echo "Error: prompt file must contain <promise>COMPLETE</promise>" >&2
+            exit 1
+        fi
+        run_loop "$PROMPT_FILE"
+        ;;
+
+    update)
+        echo "Fetching update script from GitHub..."
+        curl -sSL https://raw.githubusercontent.com/mjeffe/ralph-loop/main/update.sh | bash
+        ;;
+
+    *)
+        echo "Error: unknown mode: $MODE" >&2
+        usage >&2
+        exit 1
+        ;;
+esac

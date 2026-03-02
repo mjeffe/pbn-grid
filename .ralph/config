@@ -1,0 +1,11 @@
+# Ralph configuration
+
+# Project directories
+SPECS_DIR="specs"
+
+# Loop configuration
+DEFAULT_MAX_ITERATIONS=10
+MAX_RETRIES=3
+
+# Agent selection — corresponds to agents/{name}.sh
+AGENT="amp"

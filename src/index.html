@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PBN-Grid — Paint by Number Grid Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>PBN-Grid</h1>
+    <p>Upload an image and generate a printable paint-by-number grid.</p>
+
+    <section id="upload">
+        <label for="image-input">Choose an image:</label>
+        <input type="file" id="image-input" accept="image/*">
+        <img id="preview" alt="Preview">
+    </section>
+
+    <section id="options">
+        <div>
+            <label for="color-count">Color count:</label>
+            <input type="number" id="color-count" min="2" max="30" value="10">
+        </div>
+        <div>
+            <label for="constrain-by">Constrain by:</label>
+            <select id="constrain-by">
+                <option value="width">Width</option>
+                <option value="height">Height</option>
+            </select>
+        </div>
+        <div>
+            <label for="cell-count">Cell count:</label>
+            <input type="number" id="cell-count" min="5" max="100" value="30">
+        </div>
+    </section>
+
+    <div id="warning" style="display: none;"></div>
+
+    <button id="generate-btn" disabled>Generate</button>
+
+    <section id="result" style="display: none;">
+        <canvas id="result-canvas"></canvas>
+        <div id="result-actions">
+            <button id="download-btn">Download PNG</button>
+            <button id="print-btn">Print</button>
+        </div>
+    </section>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

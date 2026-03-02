@@ -147,7 +147,7 @@ Implement the canvas renderer:
 ## Task 5 — Web UI
 
 **Spec:** [web-ui.md](../specs/web-ui.md)
-**Status:** `planned`
+**Status:** `complete`
 **Depends on:** Task 3, Task 4
 
 Create the single-page web interface:

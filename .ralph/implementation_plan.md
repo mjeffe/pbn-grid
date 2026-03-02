@@ -1,112 +1,87 @@
 # Implementation Plan
 
-> **Status:** Complete — all tasks planned, ready for build.
->
-> **Current state:** Tasks 1–6 from the original plan are complete. All infrastructure,
-> core library, renderer, web UI, and CI/CD are implemented and tests pass (26/26).
-> The remaining tasks address spec gaps found during review.
+## Current State
+
+The core library, renderer, basic web UI ("Create Your Own" flow), dev environment,
+and CI/CD pipeline are all implemented and working. All 34 tests pass.
+
+What remains is the **pre-generated puzzles** feature: the generation script,
+renderer support for puzzle info, and the tabbed UI for browsing puzzles.
 
 ---
 
-## Task 7 — Core: Over-Quantize and Merge Strategy
+## Tasks
 
-**Spec:** [pbn-grid-core.md](../specs/pbn-grid-core.md) — "Over-quantize and merge" section
-**Status:** `complete`
-**Depends on:** None (modifies existing code)
+### 1. Renderer: Add `puzzleInfo` support
 
-The current `quantizeColors()` runs plain median-cut directly to `colorCount`.
-The spec requires an over-quantize-then-merge strategy to preserve minority
-colors:
+- **Spec:** `specs/pbn-grid-renderer.md` (Render Options table, Puzzle Info Line section)
+- **Status:** `planned`
+- **Description:**
+  - Add `puzzleInfo` to `DEFAULT_OPTIONS` (default: `null`).
+  - In `renderPBNGrid`, when `puzzleInfo` is provided, render a text line below
+    the legend: `Puzzle #14 — Dog` (or just `Puzzle #14` if no title).
+  - Update `getCanvasDimensions` to account for the extra height when
+    `puzzleInfo` is present.
+  - Add dimension tests for `puzzleInfo` in `dimensions.test.js`.
+- **Files:** `src/pbn-grid-renderer/index.js`, `src/pbn-grid-renderer/__tests__/dimensions.test.js`
+- **Gotchas:** The puzzle info rendering could live in `legend-renderer.js` or inline
+  in `index.js`. Keep it simple — a few lines of canvas text drawing in `index.js`
+  after the legend render call.
 
-1. **Over-quantize:** Run median-cut targeting `colorCount × 3` colors (or the
-   actual number of distinct colors, whichever is smaller).
-2. **Merge:** Iteratively find the two palette entries with the smallest
-   Euclidean distance in RGB space. When merging, weight the result by each
-   entry's pixel count (more prevalent color dominates). Repeat until the
-   palette has `colorCount` entries.
-3. **Re-index:** Assign final 1-based indices to the merged palette.
+### 2. Pre-generated puzzles: Generation script
 
-Changes needed in `src/pbn-grid-core/quantize.js`:
-- Track pixel count per bucket through the median-cut process.
-- After median-cut, build an intermediate palette with pixel counts.
-- Implement the merge loop: find closest pair by Euclidean RGB distance,
-  merge with pixel-weighted average, repeat until at target count.
-- Re-index final palette entries 1-based.
+- **Spec:** `specs/pre-generated-puzzles.md`
+- **Status:** `planned`
+- **Description:**
+  - Create `scripts/generate-puzzles.js` — a Node.js CLI script.
+  - Add `sharp` as a dev dependency for image decoding.
+  - Add `generate-puzzles` npm script: `node scripts/generate-puzzles.js`.
+  - Script behavior:
+    1. Parse CLI args from `process.argv` (no external libs): `source-dir`,
+       `--color-count`, `--cell-count`, `--constrain-by`, `--force`.
+    2. Scan source directory for image files (jpg, png, gif, webp).
+    3. Load existing manifest from `src/puzzles/manifest.json` if it exists.
+    4. For each image: compute SHA-256 hash, skip unchanged images (unless `--force`),
+       assign next available ID for new images, regenerate on hash change.
+    5. Remove manifest entries for deleted source images and delete their JSON files.
+    6. Write `PBNGridResult` JSON to `src/puzzles/{id}.json`.
+    7. Write updated manifest to `src/puzzles/manifest.json`.
+    8. Print summary of actions (added, updated, removed, skipped).
+  - Create `src/puzzles/` directory (it will hold committed/deployed puzzle data).
+  - The script imports `pbn-grid-core` directly via relative path.
+- **Files:** `scripts/generate-puzzles.js`, `package.json`
+- **Dependencies:** Task 1 is not strictly required, but completing it first means
+  the script could optionally pass `puzzleInfo` to the renderer in the future.
+- **Gotchas:**
+  - `sharp` is a native dependency — ensure it's dev-only.
+  - The script must use relative import paths to `src/pbn-grid-core/index.js`.
+  - Output JSON is `PBNGridResult` (grid, palette, gridWidth, gridHeight) — no
+    renderer options, no puzzle metadata inside the JSON.
 
-Tests to add/update in `src/pbn-grid-core/__tests__/quantize.test.js`:
-- **Distinct minority colors survive:** 95% brown/tan + 5% vivid blue →
-  quantize to 4 colors → palette includes a blue entry.
-- **Similar colors merge:** 3 near-identical grays + 3 distinct colors →
-  quantize to 4 → grays collapse to 1–2 entries.
-- **Pixel-weighted merge:** When two colors merge, result is closer to the
-  color with more pixels.
-- **Edge case — colorCount ≥ distinct colors:** Image with fewer distinct
-  colors than requested → no merge needed, returns as-is.
-- **Deterministic:** Same input always produces the same palette.
-- Existing tests should continue to pass (they don't assert exact color values
-  that would break with the improved algorithm).
+### 3. Web UI: Tabbed layout and puzzle browsing
 
-**Verify:** `npm test` — all quantize tests pass (old and new).
-
----
-
-## Task 8 — Renderer: Auto-Scaling Font Size
-
-**Spec:** [pbn-grid-renderer.md](../specs/pbn-grid-renderer.md) — fontSize option
-**Status:** `complete`
-**Depends on:** None (modifies existing code)
-
-The spec says `fontSize` default should be `null`, and when null, auto-calculate
-as `Math.max(8, Math.floor(cellSize * 0.45))`. Currently `fontSize` defaults to
-`12` (hardcoded).
-
-Changes needed:
-- `src/pbn-grid-renderer/index.js`: Change `DEFAULT_OPTIONS.fontSize` to `null`.
-  In `renderPBNGrid()` and `getCanvasDimensions()`, resolve `null` to the
-  auto-scaled value before passing to `renderGrid()`.
-- `src/pbn-grid-renderer/grid-renderer.js`: No changes needed if fontSize is
-  resolved before it arrives here.
-- Update JSDoc `@typedef RenderOptions` to reflect `fontSize` as
-  `number | null` with default `null`.
-
-Tests to add in `src/pbn-grid-renderer/__tests__/dimensions.test.js`:
-- Verify default fontSize is null (auto-scale).
-- Verify explicit fontSize overrides auto-scale.
-- (Dimension tests shouldn't be affected since fontSize doesn't change canvas
-  dimensions, but verify nothing breaks.)
-
-**Verify:** `npm test` — all renderer tests pass.
-
----
-
-## Task 9 — Web UI: Hide Preview Image by Default
-
-**Spec:** [web-ui.md](../specs/web-ui.md) — Image Upload section
-**Status:** `complete`
-**Depends on:** None (modifies existing code)
-
-The spec states the preview `<img>` must be **hidden by default** (no `src` set
-initially) and shown only after the user selects a file. This avoids Chrome's
-broken-image icon.
-
-Changes needed:
-- `src/index.html`: Add `style="display: none"` (or `hidden` attribute) to the
-  `#preview` img element.
-- `src/app.js`: In the image upload handler, set `preview.style.display = ''`
-  (or remove `hidden` attribute) when displaying the thumbnail preview.
-
-**Verify:** Manual — open app in browser, confirm no broken image icon on load,
-confirm preview appears after file selection.
-
----
-
-## Dependency Graph
-
-```
-Task 7 (Over-Quantize & Merge)   — independent
-Task 8 (Auto-Scaling Font Size)  — independent
-Task 9 (Hide Preview Image)      — independent
-```
-
-All three tasks are independent and can be built in any order.
-Recommended order: 7 → 8 → 9 (core logic first, then renderer, then UI polish).
+- **Spec:** `specs/web-ui.md`, `specs/pre-generated-puzzles.md`
+- **Status:** `planned`
+- **Description:**
+  - Restructure `index.html` with a tabbed interface:
+    - Tab 1: "Choose a Puzzle" (default active)
+    - Tab 2: "Create Your Own" (existing upload flow)
+    - Shared result/canvas area below both tabs.
+  - Implement "Choose a Puzzle" tab in `app.js`:
+    1. On page load, fetch `puzzles/manifest.json` and display a scrollable list
+       of puzzles showing ID and title (e.g., `#1 — Dog`).
+    2. Add a search/filter input that filters by puzzle number or title as user types.
+    3. On puzzle click, fetch `puzzles/{id}.json`, render with `renderPBNGrid`
+       using default options + `puzzleInfo`, show result with download/print buttons.
+  - Add tab and puzzle list styles to `style.css`.
+  - The existing "Create Your Own" flow stays unchanged, just wrapped in its tab.
+- **Files:** `src/index.html`, `src/app.js`, `src/style.css`
+- **Dependencies:** Task 1 (for `puzzleInfo` rendering on selected puzzles).
+  Task 2 is needed to have actual puzzle data, but the UI can be built and tested
+  with a manually created manifest/puzzle JSON.
+- **Gotchas:**
+  - Puzzle data path is `puzzles/manifest.json` (relative to `src/` root, which
+    is the deployed site root). During dev, Vite serves from `src/`.
+  - The result section's `display: none` is set by CSS, so JS must set
+    `style.display = 'block'` explicitly (not clear to `''`).
+  - Handle fetch errors gracefully (e.g., no puzzles directory yet).

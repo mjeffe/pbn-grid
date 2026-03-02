@@ -53,7 +53,7 @@ Tests to add/update in `src/pbn-grid-core/__tests__/quantize.test.js`:
 ## Task 8 — Renderer: Auto-Scaling Font Size
 
 **Spec:** [pbn-grid-renderer.md](../specs/pbn-grid-renderer.md) — fontSize option
-**Status:** `planned`
+**Status:** `complete`
 **Depends on:** None (modifies existing code)
 
 The spec says `fontSize` default should be `null`, and when null, auto-calculate

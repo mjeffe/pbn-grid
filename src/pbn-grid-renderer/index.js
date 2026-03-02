@@ -6,9 +6,28 @@ const DEFAULT_OPTIONS = {
     lineColor: '#cccccc',
     lineWidth: 0.5,
     numberColor: '#999999',
-    fontSize: 12,
+    fontSize: null,
     showLegend: true,
 };
+
+/**
+ * Auto-calculate font size from cell size.
+ * @param {number} cellSize
+ * @returns {number}
+ */
+function autoFontSize(cellSize) {
+    return Math.max(8, Math.floor(cellSize * 0.45));
+}
+
+/**
+ * Resolve fontSize — use auto-scaling when null.
+ * @param {number|null} fontSize
+ * @param {number} cellSize
+ * @returns {number}
+ */
+function resolveFontSize(fontSize, cellSize) {
+    return fontSize != null ? fontSize : autoFontSize(cellSize);
+}
 
 /**
  * @typedef {Object} RenderOptions
@@ -16,7 +35,7 @@ const DEFAULT_OPTIONS = {
  * @property {string} [lineColor='#cccccc']
  * @property {number} [lineWidth=0.5]
  * @property {string} [numberColor='#999999']
- * @property {number} [fontSize=12]
+ * @property {number|null} [fontSize=null] - When null, auto-scales as Math.max(8, Math.floor(cellSize * 0.45))
  * @property {boolean} [showLegend=true]
  */
 
@@ -54,6 +73,8 @@ function renderPBNGrid(canvas, gridResult, options) {
 
     canvas.width = dimensions.width;
     canvas.height = dimensions.height;
+
+    opts.fontSize = resolveFontSize(opts.fontSize, opts.cellSize);
 
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#ffffff';

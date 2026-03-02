@@ -91,8 +91,7 @@ See [`specs/`](specs/) for detailed specifications.
 
 ## Todo
 
-I would like to add a `random` options with pre-generated grids so the user
-does not know what the image will be.
+- add a `random` options with pre-generated grids so the user does not know what the image will be.
 
 ## License
 

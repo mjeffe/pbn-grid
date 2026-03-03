@@ -1,9 +1,8 @@
 # Implementation Plan
 
-## Status: complete
+## Status: in-progress
 
-All specs are implemented. One UI task remains — the "Show titles" checkbox
-and puzzle list sizing described in the specs but not yet in the code.
+All specs are implemented except for one UI task in the "Choose a Puzzle" tab.
 
 ---
 

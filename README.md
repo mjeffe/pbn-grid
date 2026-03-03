@@ -68,6 +68,46 @@ npm test             # Run tests
 npm run test:watch   # Run tests in watch mode
 ```
 
+## Pre-Generating Puzzles
+
+You can pre-generate a collection of puzzles from source images so users can
+browse and print them without uploading their own.
+
+1. Place source images (jpg, png, gif, webp) in `puzzles/source-images/`.
+2. Run the generation script:
+
+```bash
+# In Docker
+docker compose exec app node scripts/generate-puzzles.js
+
+# Or directly
+node scripts/generate-puzzles.js
+```
+
+This produces `PBNGridResult` JSON files and a manifest in `src/puzzles/`,
+which are committed and deployed with the app. Source images are gitignored and
+never deployed.
+
+**Options:**
+
+| Option           | Default                  | Description                                    |
+| ---------------- | ------------------------ | ---------------------------------------------- |
+| `source-dir`     | `puzzles/source-images/` | Directory containing source images             |
+| `--color-count`  | 10                       | Number of colors for quantization              |
+| `--cell-count`   | 30                       | Cells along the constrained dimension          |
+| `--constrain-by` | `width`                  | Constrained dimension: `width` or `height`     |
+| `--force`        | (flag)                   | Regenerate all puzzles, even if unchanged      |
+
+**Example:**
+
+```bash
+node scripts/generate-puzzles.js puzzles/source-images/ --color-count 12 --cell-count 40
+```
+
+The script is incremental — it hashes each source image and only regenerates
+puzzles whose source has changed (unless `--force` is used). Removed source
+images are automatically cleaned up from the manifest and output.
+
 ## Project Structure
 
 ```

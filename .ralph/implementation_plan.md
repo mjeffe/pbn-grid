@@ -2,8 +2,8 @@
 
 ## Status: complete
 
-All core features are implemented and tests pass. Three UI gaps remain
-between the spec and the current code, grouped into one task.
+All specs are implemented. One UI task remains — the "Show titles" checkbox
+and puzzle list sizing described in the specs but not yet in the code.
 
 ---
 

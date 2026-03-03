@@ -132,10 +132,14 @@ The main page uses a tabbed interface with two tabs:
 ### Choose a Puzzle Tab
 
 - On page load, fetch `puzzles/manifest.json`.
-- Display a **scrollable list** of available puzzles, each showing its ID
-  number and title (e.g., `#1 — Dog`).
+- Display a **scrollable list** of available puzzles. The list is limited to
+  approximately **4 visible items** with vertical scrolling for the rest.
+- By default, each entry shows only its ID number (e.g., `#1`). Titles are
+  hidden to keep the puzzle a mystery.
+- A **"Show titles" checkbox** lets users reveal titles (e.g., `#1 — Dog`).
 - A **search/filter input** at the top filters the list by puzzle number or
-  title as the user types.
+  title as the user types — filtering by title works regardless of whether
+  titles are currently shown.
 - Clicking a puzzle entry fetches `puzzles/{id}.json`, renders the grid using
   the default renderer options, and displays the result with download/print
   buttons.
@@ -143,17 +147,10 @@ The main page uses a tabbed interface with two tabs:
 ### Puzzle Info on Rendered Grid
 
 When rendering a pre-generated puzzle, a small info line is displayed on the
-canvas **below the legend**:
+canvas **below the legend**. The info line respects the "Show titles" setting:
 
-```
-Puzzle #14 — Dog
-```
-
-If no title is set, just the number:
-
-```
-Puzzle #14
-```
+- When titles are **hidden** (default): `Puzzle #14`
+- When titles are **shown**: `Puzzle #14 — Dog`
 
 This ensures the puzzle number appears on printed output for reference by
 returning users.

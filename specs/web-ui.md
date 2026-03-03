@@ -32,13 +32,18 @@ The main page uses a tabbed interface with two tabs:
 ## User Flow — Choose a Puzzle
 
 1. **Browse** — On page load, the app fetches `puzzles/manifest.json` and
-   displays a scrollable list of available puzzles, each showing its ID number
-   and title (e.g., `#1 — Dog`).
-2. **Filter** — A search/filter input at the top filters the list by puzzle
-   number or title as the user types.
-3. **Select** — Clicking a puzzle entry fetches `puzzles/{id}.json` and renders
+   displays a scrollable list of available puzzles (limited to ~4 visible
+   items). Each entry shows only its ID number (e.g., `#1`) by default —
+   titles are hidden to keep the puzzle a mystery.
+2. **Reveal titles** — A "Show titles" checkbox lets users reveal titles
+   (e.g., `#1 — Dog`). This also controls whether the title appears on the
+   rendered canvas.
+3. **Filter** — A search/filter input filters the list by puzzle number or
+   title as the user types — filtering by title works regardless of whether
+   titles are currently shown.
+4. **Select** — Clicking a puzzle entry fetches `puzzles/{id}.json` and renders
    the grid using the default renderer options.
-4. **Export** — Download/print buttons work the same as the "Create Your Own"
+5. **Export** — Download/print buttons work the same as the "Create Your Own"
    flow.
 
 ## User Flow — Create Your Own
@@ -60,10 +65,14 @@ The main page uses a tabbed interface with two tabs:
 ### Choose a Puzzle Tab
 
 - On page load, fetch `puzzles/manifest.json`.
-- Display a **scrollable list** of available puzzles, each showing its ID
-  number and title (e.g., `#1 — Dog`).
+- Display a **scrollable list** of available puzzles. The list is limited to
+  approximately **4 visible items** with vertical scrolling for the rest.
+- By default, each entry shows only its ID number (e.g., `#1`). Titles are
+  hidden to keep the puzzle a mystery.
+- A **"Show titles" checkbox** lets users reveal titles (e.g., `#1 — Dog`).
 - A **search/filter input** at the top filters the list by puzzle number or
-  title as the user types.
+  title as the user types — filtering by title works regardless of whether
+  titles are currently shown.
 - Clicking a puzzle entry fetches `puzzles/{id}.json`, renders the grid using
   the default renderer options, and displays the result with download/print
   buttons.

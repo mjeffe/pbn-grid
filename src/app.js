@@ -5,6 +5,7 @@ const tabButtons = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 
 const puzzleFilter = document.getElementById('puzzle-filter');
+const showTitles = document.getElementById('show-titles');
 const puzzleList = document.getElementById('puzzle-list');
 const puzzleEmpty = document.getElementById('puzzle-empty');
 
@@ -22,6 +23,7 @@ const printBtn = document.getElementById('print-btn');
 
 let storedImageData = null;
 let manifestPuzzles = [];
+let currentPuzzle = null;
 
 tabButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -47,7 +49,7 @@ function renderPuzzleList(puzzles) {
         const item = document.createElement('div');
         item.className = 'puzzle-item';
         const idSpan = `<span class="puzzle-id">#${puzzle.id}</span>`;
-        item.innerHTML = puzzle.title ? `${idSpan} — ${puzzle.title}` : idSpan;
+        item.innerHTML = (showTitles.checked && puzzle.title) ? `${idSpan} — ${puzzle.title}` : idSpan;
         item.addEventListener('click', () => loadPuzzle(puzzle));
         puzzleList.appendChild(item);
     });
@@ -57,12 +59,22 @@ async function loadPuzzle(puzzle) {
     try {
         const resp = await fetch(`puzzles/${puzzle.id}.json`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const gridResult = await resp.json();
-        renderPBNGrid(canvas, gridResult, { puzzleInfo: { id: puzzle.id, title: puzzle.title } });
+        currentPuzzle = { puzzle, gridResult: await resp.json() };
+        renderCurrentPuzzle();
         result.style.display = 'block';
     } catch (err) {
         console.error('Failed to load puzzle:', err);
     }
+}
+
+function renderCurrentPuzzle() {
+    if (!currentPuzzle) return;
+    const { puzzle, gridResult } = currentPuzzle;
+    const puzzleInfo = { id: puzzle.id };
+    if (showTitles.checked && puzzle.title) {
+        puzzleInfo.title = puzzle.title;
+    }
+    renderPBNGrid(canvas, gridResult, { puzzleInfo });
 }
 
 puzzleFilter.addEventListener('input', () => {
@@ -71,6 +83,17 @@ puzzleFilter.addEventListener('input', () => {
         String(p.id).includes(filter) || (p.title && p.title.toLowerCase().includes(filter))
     );
     renderPuzzleList(filtered);
+});
+
+showTitles.addEventListener('change', () => {
+    const filter = puzzleFilter.value.toLowerCase();
+    const filtered = filter
+        ? manifestPuzzles.filter((p) =>
+            String(p.id).includes(filter) || (p.title && p.title.toLowerCase().includes(filter))
+        )
+        : manifestPuzzles;
+    renderPuzzleList(filtered);
+    renderCurrentPuzzle();
 });
 
 fetch('puzzles/manifest.json')

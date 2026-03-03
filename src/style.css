@@ -150,8 +150,15 @@ button:hover {
     margin-bottom: 0.75rem;
 }
 
+.show-titles-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: normal;
+    cursor: pointer;
+}
+
 #puzzle-list {
-    max-height: 400px;
+    max-height: 160px;
     overflow-y: auto;
     border: 1px solid #ddd;
     border-radius: 4px;

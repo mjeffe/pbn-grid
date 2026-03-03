@@ -1,8 +1,8 @@
 # Implementation Plan
 
-## Status: in-progress
+## Status: complete
 
-All specs are implemented except for one UI task in the "Choose a Puzzle" tab.
+All specs are fully implemented.
 
 ---
 
@@ -10,7 +10,7 @@ All specs are implemented except for one UI task in the "Choose a Puzzle" tab.
 
 **Spec:** `specs/web-ui.md`, `specs/pre-generated-puzzles.md`
 
-**Status:** `planned`
+**Status:** `complete`
 
 **Description:**
 
